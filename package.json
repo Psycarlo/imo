@@ -1,19 +1,36 @@
 {
   "name": "imo",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts",
-    "scrape": "tsx src/index.ts"
+    "dev": "next dev --turbopack -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "scrape": "tsx scraper/index.ts"
   },
   "packageManager": "pnpm@10.6.2",
   "dependencies": {
-    "exceljs": "^4.4.0",
-    "playwright": "^1.52.0"
+    "@convex-dev/crons": "^0.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "^1.21.0",
+    "dotenv": "^17.4.2",
+    "lucide-react": "^0.469.0",
+    "next": "^15.3.1",
+    "playwright": "^1.52.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.0.2"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^22.15.2",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.4",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }

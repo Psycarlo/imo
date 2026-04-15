@@ -1,6 +1,11 @@
 # Dependencies
 node_modules/
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
 # Playwright
 /test-results/
 /playwright-report/
@@ -9,4 +14,9 @@ node_modules/
 /playwright/.auth/
 
 # Results
-res
+res/
+
+# Env
+.env
+.env.local
+.env*.local

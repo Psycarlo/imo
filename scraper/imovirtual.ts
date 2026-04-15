@@ -1,5 +1,5 @@
 import { BaseScraper } from "./base.js";
-import type { Listing, ImovirtualFilters } from "../types.js";
+import type { Listing, ImovirtualFilters } from "./types.js";
 
 export class ImovirtualScraper extends BaseScraper {
   readonly name = "imovirtual";

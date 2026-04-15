@@ -1,5 +1,5 @@
 import { Browser, chromium, Page } from "playwright";
-import type { Listing } from "../types.js";
+import type { Listing } from "./types.js";
 
 export abstract class BaseScraper {
   abstract readonly name: string;
