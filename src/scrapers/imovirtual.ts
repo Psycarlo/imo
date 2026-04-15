@@ -1,12 +1,39 @@
 import { BaseScraper } from "./base.js";
-import type { Listing } from "../types.js";
+import type { Listing, ImovirtualFilters } from "../types.js";
 
 export class ImovirtualScraper extends BaseScraper {
   readonly name = "imovirtual";
   readonly baseUrl = "https://www.imovirtual.com";
 
+  private filters: ImovirtualFilters;
+
+  constructor(filters: ImovirtualFilters = {}) {
+    super();
+    this.filters = {
+      transaction: "comprar",
+      propertyType: "moradia",
+      location: ["leiria", "leiria"],
+      ownerType: "ALL",
+      ...filters,
+    };
+  }
+
   private listingsUrl(page: number): string {
-    return `${this.baseUrl}/pt/resultados/comprar/moradia/todo-o-pais?page=${page}`;
+    const { transaction, propertyType, location, priceMin, priceMax, areaMin, areaMax, roomsNumber, ownerType } = this.filters;
+
+    const locationPath = location?.length ? location.join("/") : "todo-o-pais";
+    const basePath = `${this.baseUrl}/pt/resultados/${transaction}/${propertyType}/${locationPath}`;
+
+    const params = new URLSearchParams();
+    if (ownerType) params.set("ownerTypeSingleSelect", ownerType);
+    if (priceMin != null) params.set("priceMin", String(priceMin));
+    if (priceMax != null) params.set("priceMax", String(priceMax));
+    if (areaMin != null) params.set("areaMin", String(areaMin));
+    if (areaMax != null) params.set("areaMax", String(areaMax));
+    if (roomsNumber?.length) params.set("roomsNumber", `[${roomsNumber.join(",")}]`);
+    params.set("page", String(page));
+
+    return `${basePath}?${params.toString()}`;
   }
 
   async scrape(maxPages = 3): Promise<Listing[]> {

@@ -6,7 +6,19 @@ import { exportToExcel } from "./excel.js";
 import type { Listing } from "./types.js";
 
 // Register all scrapers here — add new ones as needed
-const scrapers: BaseScraper[] = [new ImovirtualScraper()];
+const scrapers: BaseScraper[] = [
+  new ImovirtualScraper({
+    transaction: "comprar",
+    propertyType: "moradia",
+    location: ["leiria", "leiria"],
+    ownerType: "ALL",
+    // priceMin: 100000,
+    // priceMax: 300000,
+    // areaMin: 100,
+    // areaMax: 500,
+    // roomsNumber: ["THREE", "FOUR"],
+  }),
+];
 
 const MAX_PAGES = 3;
 
