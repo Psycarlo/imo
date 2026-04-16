@@ -7,6 +7,8 @@ export interface Listing {
   rooms: string;
   url: string;
   source: string;
+  type: "moradia" | "apartamento";
+  phone?: string;
 }
 
 export interface ImovirtualFilters {

@@ -22,6 +22,8 @@ export async function syncToConvex(listings: Listing[]): Promise<{ inserted: num
       area: listing.area || undefined,
       rooms: listing.rooms || undefined,
       source: listing.source,
+      type: listing.type,
+      phone: listing.phone || undefined,
     });
 
     if (result.inserted) {

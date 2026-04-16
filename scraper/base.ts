@@ -18,7 +18,7 @@ export abstract class BaseScraper {
     this.page = await context.newPage();
   }
 
-  abstract scrape(maxPages?: number): Promise<Listing[]>;
+  abstract scrape(maxPages?: number, limit?: number): Promise<Listing[]>;
 
   async close(): Promise<void> {
     await this.browser?.close();

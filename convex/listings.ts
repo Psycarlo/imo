@@ -34,6 +34,8 @@ export const upsertListing = mutation({
     area: v.optional(v.string()),
     rooms: v.optional(v.string()),
     source: v.string(),
+    type: v.optional(v.string()),
+    phone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -52,6 +54,8 @@ export const upsertListing = mutation({
         location: args.location,
         area: args.area,
         rooms: args.rooms,
+        type: args.type,
+        phone: args.phone ?? existing.phone,
       });
       return { inserted: false, id: existing._id };
     }

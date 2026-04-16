@@ -11,6 +11,8 @@ export default defineSchema({
     area: v.optional(v.string()),
     rooms: v.optional(v.string()),
     source: v.string(),
+    type: v.optional(v.string()),
+    phone: v.optional(v.string()),
     firstSeen: v.number(),
     lastSeen: v.number(),
     contactCount: v.number(),
@@ -21,5 +23,6 @@ export default defineSchema({
     .index("by_url", ["url"])
     .index("by_favorite", ["favorite"])
     .index("by_firstSeen", ["firstSeen"])
-    .index("by_hidden", ["hidden"]),
+    .index("by_hidden", ["hidden"])
+    .index("by_type", ["type"]),
 });

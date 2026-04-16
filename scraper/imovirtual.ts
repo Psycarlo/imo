@@ -36,8 +36,8 @@ export class ImovirtualScraper extends BaseScraper {
     return `${basePath}?${params.toString()}`;
   }
 
-  async scrape(maxPages = 3): Promise<Listing[]> {
-    const allListings: Listing[] = [];
+  async scrape(maxPages = 3, limit?: number): Promise<Listing[]> {
+    let allListings: Listing[] = [];
 
     for (let page = 1; page <= maxPages; page++) {
       console.log(`[${this.name}] Scraping page ${page}/${maxPages}...`);
@@ -52,6 +52,9 @@ export class ImovirtualScraper extends BaseScraper {
 
         allListings.push(...listings);
         console.log(`[${this.name}] Got ${listings.length} listings from page ${page} (total: ${allListings.length})`);
+
+        // Stop paging early if we already have enough
+        if (limit != null && allListings.length >= limit) break;
       } catch (err) {
         console.error(`[${this.name}] Failed on page ${page}:`, (err as Error).message);
         break;
@@ -60,6 +63,31 @@ export class ImovirtualScraper extends BaseScraper {
       if (page < maxPages) {
         await this.page.waitForTimeout(1500 + Math.random() * 1500);
       }
+    }
+
+    // Apply limit before phone scraping
+    if (limit != null && allListings.length > limit) {
+      console.log(`[${this.name}] Trimming from ${allListings.length} to ${limit}`);
+      allListings = allListings.slice(0, limit);
+    }
+
+    // Scrape phone numbers by visiting each listing detail page
+    console.log(`[${this.name}] Scraping phone numbers for ${allListings.length} listings...`);
+    for (let i = 0; i < allListings.length; i++) {
+      const listing = allListings[i];
+      try {
+        const phone = await this.scrapePhone(listing.url);
+        if (phone) {
+          listing.phone = phone;
+          console.log(`[${this.name}] [${i + 1}/${allListings.length}] Phone: ${phone}`);
+        } else {
+          console.log(`[${this.name}] [${i + 1}/${allListings.length}] No phone`);
+        }
+      } catch (err) {
+        console.log(`[${this.name}] [${i + 1}/${allListings.length}] Phone scrape failed: ${(err as Error).message}`);
+      }
+      // Small delay between detail page visits
+      await this.page.waitForTimeout(800 + Math.random() * 1200);
     }
 
     return allListings;
@@ -81,8 +109,10 @@ export class ImovirtualScraper extends BaseScraper {
     // Small extra wait for all cards to finish rendering
     await this.page.waitForTimeout(1000);
 
+    const propertyType = this.filters.propertyType as "moradia" | "apartamento";
+
     // Each listing is an <article data-sentry-component="AdvertCard">
-    const listings = await this.page.evaluate((source: string) => {
+    const listings = await this.page.evaluate((args: { source: string; type: "moradia" | "apartamento" }) => {
       const articles = document.querySelectorAll('article[data-sentry-component="AdvertCard"]');
       const results: {
         title: string;
@@ -93,6 +123,7 @@ export class ImovirtualScraper extends BaseScraper {
         rooms: string;
         url: string;
         source: string;
+        type: "moradia" | "apartamento";
       }[] = [];
 
       for (const article of articles) {
@@ -168,19 +199,61 @@ export class ImovirtualScraper extends BaseScraper {
           area,
           rooms,
           url: link.href,
-          source,
+          source: args.source,
+          type: args.type,
         });
       }
 
       return results;
-    }, this.name);
+    }, { source: this.name, type: propertyType });
 
     return listings;
+  }
+
+  private async scrapePhone(listingUrl: string): Promise<string | undefined> {
+    await this.page.goto(listingUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
+
+    // Dismiss cookie consent if it appears on detail page
+    await this.dismissCookies();
+
+    // Look for "Mostrar número" button (may be multiple on page, take first)
+    const showPhoneBtn = this.page.locator(
+      'button[data-cy="phone-number.show-full-number-button"]'
+    ).first();
+
+    if ((await showPhoneBtn.count()) === 0) return undefined;
+
+    await showPhoneBtn.click({ timeout: 5000 });
+
+    // Wait for phone number to appear — it replaces the button or appears nearby
+    // The revealed number typically appears in an <a href="tel:..."> or text near the button
+    await this.page.waitForTimeout(1500);
+
+    // Try to find phone in tel: link first
+    const telLink = this.page.locator('a[href^="tel:"]').first();
+    if ((await telLink.count()) > 0) {
+      const href = await telLink.getAttribute("href");
+      if (href) return href.replace("tel:", "").trim();
+    }
+
+    // Fallback: look for phone number text in the phone section
+    const phoneSection = this.page.locator(
+      '[data-cy="phone-number.show-full-number-button"]'
+    ).locator("..");
+    const phoneText = await phoneSection.innerText().catch(() => "");
+    const phoneMatch = phoneText.match(/[\d\s+()-]{9,}/);
+    if (phoneMatch) return phoneMatch[0].trim();
+
+    return undefined;
   }
 
   private async dismissCookies(): Promise<void> {
     try {
       const selectors = [
+        '#onetrust-accept-btn-handler',
         'button[id*="accept"]',
         'button[id*="consent"]',
         'button:has-text("Aceitar")',
@@ -190,7 +263,7 @@ export class ImovirtualScraper extends BaseScraper {
       for (const selector of selectors) {
         const btn = this.page.locator(selector).first();
         if ((await btn.count()) > 0) {
-          await btn.click({ timeout: 2000 });
+          await btn.click({ timeout: 3000 });
           console.log(`[${this.name}] Dismissed cookie consent.`);
           return;
         }

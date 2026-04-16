@@ -11,6 +11,7 @@ import {
   Eye,
   ChevronUp,
   ChevronDown,
+  Phone,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -37,6 +38,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
   const [sortField, setSortField] = useState<SortField>("firstSeen");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterFavOnly, setFilterFavOnly] = useState(false);
+  const [filterType, setFilterType] = useState<"all" | "moradia" | "apartamento">("all");
   const [search, setSearch] = useState("");
 
   const sorted = useMemo(() => {
@@ -44,6 +46,10 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
 
     if (filterFavOnly) {
       filtered = filtered.filter((l) => l.favorite);
+    }
+
+    if (filterType !== "all") {
+      filtered = filtered.filter((l) => l.type === filterType);
     }
 
     if (search) {
@@ -78,7 +84,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
     });
 
     return filtered;
-  }, [listings, sortField, sortDir, filterFavOnly, search]);
+  }, [listings, sortField, sortDir, filterFavOnly, filterType, search]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -109,6 +115,21 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
           onChange={(e) => setSearch(e.target.value)}
           className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
+        <div className="inline-flex rounded-md border text-sm">
+          {(["all", "moradia", "apartamento"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilterType(t)}
+              className={`px-3 py-2 capitalize first:rounded-l-md last:rounded-r-md ${
+                filterType === t
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent"
+              }`}
+            >
+              {t === "all" ? "All" : t}
+            </button>
+          ))}
+        </div>
         <button
           onClick={() => setFilterFavOnly(!filterFavOnly)}
           className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm ${
@@ -132,6 +153,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="w-10 px-3 py-3"></th>
+              <th className="px-3 py-3 text-left font-medium">Type</th>
               <th className="px-3 py-3 text-left font-medium">Title</th>
               <th
                 className="cursor-pointer px-3 py-3 text-left font-medium"
@@ -167,6 +189,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
                   Contacts <SortIcon field="contactCount" />
                 </span>
               </th>
+              <th className="px-3 py-3 text-left font-medium">Phone</th>
               <th
                 className="cursor-pointer px-3 py-3 text-left font-medium"
                 onClick={() => toggleSort("firstSeen")}
@@ -200,6 +223,19 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
                     />
                   </button>
                 </td>
+                <td className="whitespace-nowrap px-3 py-3">
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      listing.type === "apartamento"
+                        ? "bg-blue-100 text-blue-700"
+                        : listing.type === "moradia"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {listing.type || "—"}
+                  </span>
+                </td>
                 <td className="max-w-[250px] truncate px-3 py-3 font-medium">
                   <a
                     href={listing.url}
@@ -228,6 +264,19 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
                     listingId={listing._id}
                     count={listing.contactCount}
                   />
+                </td>
+                <td className="whitespace-nowrap px-3 py-3">
+                  {listing.phone ? (
+                    <a
+                      href={`tel:${listing.phone}`}
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
+                    >
+                      <Phone className="h-3 w-3" />
+                      {listing.phone}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">
                   {new Date(listing.firstSeen).toLocaleDateString("pt-PT")}
