@@ -1,0 +1,55 @@
+name: Daily scrape
+
+on:
+  schedule:
+    # 06:00 UTC = 06:00/07:00 Lisbon (winter/summer)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max listings per source/type (blank = no limit)"
+        required: false
+        type: string
+      pages:
+        description: "Pages per type (overrides per-source config)"
+        required: false
+        type: string
+      only:
+        description: "Run only this source (e.g. imovirtual)"
+        required: false
+        type: string
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run scraper
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
+          if [ -n "${{ inputs.pages }}" ]; then ARGS="$ARGS --pages ${{ inputs.pages }}"; fi
+          if [ -n "${{ inputs.only }}" ]; then ARGS="$ARGS --only ${{ inputs.only }}"; fi
+          pnpm scrape $ARGS

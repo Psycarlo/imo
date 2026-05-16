@@ -4,7 +4,8 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ListingsTable } from "@/components/listings-table";
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Settings } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const [showHidden, setShowHidden] = useState(false);
@@ -21,17 +22,26 @@ export default function Home() {
               : `${listings.length} listings`}
           </p>
         </div>
-        <button
-          onClick={() => setShowHidden(!showHidden)}
-          className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
-        >
-          {showHidden ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-          {showHidden ? "Hide dismissed" : "Show all"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowHidden(!showHidden)}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+          >
+            {showHidden ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            {showHidden ? "Hide dismissed" : "Show all"}
+          </button>
+          <Link
+            href="/settings/scrapers"
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+          >
+            <Settings className="h-4 w-4" />
+            Scrapers
+          </Link>
+        </div>
       </div>
 
       {listings === undefined ? (

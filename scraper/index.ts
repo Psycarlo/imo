@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+import { ConvexHttpClient } from "convex/browser";
 import { BaseScraper } from "./base.js";
-import { SCRAPER_CONFIG, type SiteConfig } from "./config.js";
 import { CasaIolScraper } from "./casaiol.js";
 import { CasaSapoScraper } from "./casasapo.js";
 import { CasayesScraper } from "./casayes.js";
@@ -9,7 +9,8 @@ import { ImovirtualScraper } from "./imovirtual.js";
 import { OlxScraper } from "./olx.js";
 import { SupercasaScraper } from "./supercasa.js";
 import { syncToConvex } from "./sync.js";
-import type { Listing, PropertyType, ScraperFilters } from "./types.js";
+import { api } from "../convex/_generated/api";
+import type { Listing, PropertyType, ScraperFilters, Transaction } from "./types.js";
 
 type ScraperCtor = new (filters: ScraperFilters) => BaseScraper;
 
@@ -22,10 +23,24 @@ const REGISTRY: Record<string, ScraperCtor> = {
   casayes: CasayesScraper,
 };
 
+interface RuntimeConfig {
+  source: string;
+  enabled: boolean;
+  transaction: Transaction;
+  propertyTypes: PropertyType[];
+  location: string[];
+  ownerType?: string;
+  priceMin?: number;
+  priceMax?: number;
+  areaMin?: number;
+  areaMax?: number;
+  pages?: number;
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   let limit: number | undefined;
-  let pages = 3;
+  let pagesOverride: number | undefined;
   let only: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
@@ -34,7 +49,7 @@ function parseArgs() {
       i++;
     }
     if ((args[i] === "--pages" || args[i] === "-p") && args[i + 1]) {
-      pages = parseInt(args[i + 1], 10);
+      pagesOverride = parseInt(args[i + 1], 10);
       i++;
     }
     if ((args[i] === "--only" || args[i] === "-o") && args[i + 1]) {
@@ -43,22 +58,39 @@ function parseArgs() {
     }
   }
 
-  return { limit, pages, only };
+  return { limit, pagesOverride, only };
+}
+
+async function loadConfigs(client: ConvexHttpClient): Promise<RuntimeConfig[]> {
+  const rows = await client.query(api.scraperConfigs.list, {});
+  if (rows.length === 0) {
+    console.log("No scraperConfigs rows. Seeding defaults...");
+    await client.mutation(api.scraperConfigs.seed, {});
+    return await client.query(api.scraperConfigs.list, {});
+  }
+  return rows;
 }
 
 async function scrapeSiteType(
   source: string,
   Ctor: ScraperCtor,
-  config: SiteConfig,
+  config: RuntimeConfig,
   propertyType: PropertyType,
   maxPages: number,
   limit?: number
 ): Promise<Listing[]> {
-  const scraper = new Ctor({
-    ...config.filters,
+  const filters: ScraperFilters = {
     transaction: config.transaction,
     propertyType,
-  });
+    location: config.location,
+    ownerType: config.ownerType,
+    priceMin: config.priceMin,
+    priceMax: config.priceMax,
+    areaMin: config.areaMin,
+    areaMax: config.areaMax,
+  };
+
+  const scraper = new Ctor(filters);
 
   console.log(`\n=== ${source} / ${propertyType} ===\n`);
 
@@ -77,25 +109,35 @@ async function scrapeSiteType(
 }
 
 async function main(): Promise<void> {
-  const { limit, pages, only } = parseArgs();
+  const { limit, pagesOverride, only } = parseArgs();
+
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL env var not set. Add it to .env.local");
+  }
+  const client = new ConvexHttpClient(convexUrl);
+
+  const configs = await loadConfigs(client);
 
   if (limit != null) console.log(`Limit: ${limit} listings per type`);
-  console.log(`Pages: ${pages} per type`);
+  if (pagesOverride != null) console.log(`Pages override: ${pagesOverride}`);
   if (only) console.log(`Filter: only=${only}`);
 
   const allListings: Listing[] = [];
 
-  for (const [source, config] of Object.entries(SCRAPER_CONFIG)) {
+  for (const config of configs) {
     if (!config.enabled) continue;
-    if (only && source !== only) continue;
-    const Ctor = REGISTRY[source];
+    if (only && config.source !== only) continue;
+    const Ctor = REGISTRY[config.source];
     if (!Ctor) {
-      console.warn(`No scraper class registered for "${source}", skipping.`);
+      console.warn(`No scraper class registered for "${config.source}", skipping.`);
       continue;
     }
 
+    const pages = pagesOverride ?? config.pages ?? 3;
+
     for (const type of config.propertyTypes) {
-      const listings = await scrapeSiteType(source, Ctor, config, type, pages, limit);
+      const listings = await scrapeSiteType(config.source, Ctor, config, type, pages, limit);
       allListings.push(...listings);
     }
   }

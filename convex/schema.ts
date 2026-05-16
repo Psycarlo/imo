@@ -25,4 +25,20 @@ export default defineSchema({
     .index("by_firstSeen", ["firstSeen"])
     .index("by_hidden", ["hidden"])
     .index("by_type", ["type"]),
+
+  scraperConfigs: defineTable({
+    source: v.string(),
+    enabled: v.boolean(),
+    transaction: v.union(v.literal("comprar"), v.literal("arrendar")),
+    propertyTypes: v.array(
+      v.union(v.literal("moradia"), v.literal("apartamento"))
+    ),
+    location: v.array(v.string()),
+    ownerType: v.optional(v.string()),
+    priceMin: v.optional(v.number()),
+    priceMax: v.optional(v.number()),
+    areaMin: v.optional(v.number()),
+    areaMax: v.optional(v.number()),
+    pages: v.optional(v.number()),
+  }).index("by_source", ["source"]),
 });
