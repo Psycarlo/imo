@@ -1,3 +1,6 @@
+export type Transaction = "comprar" | "arrendar";
+export type PropertyType = "moradia" | "apartamento";
+
 export interface Listing {
   title: string;
   price: string;
@@ -7,16 +10,18 @@ export interface Listing {
   rooms: string;
   url: string;
   source: string;
-  type: "moradia" | "apartamento";
+  type: PropertyType;
   phone?: string;
 }
 
-export interface ImovirtualFilters {
-  /** e.g. "comprar" or "arrendar" */
-  transaction?: string;
-  /** e.g. "moradia", "apartamento", "terreno" */
-  propertyType?: string;
-  /** URL path segments for location, e.g. ["leiria", "leiria"] */
+/**
+ * Shared filter shape. Each site uses the subset it supports.
+ * Site-specific extras allowed via index signature.
+ */
+export interface ScraperFilters {
+  transaction?: Transaction;
+  propertyType?: PropertyType;
+  /** URL path segments, e.g. ["leiria", "leiria"] */
   location?: string[];
   priceMin?: number;
   priceMax?: number;
@@ -24,6 +29,7 @@ export interface ImovirtualFilters {
   areaMax?: number;
   /** e.g. ["ONE","TWO","THREE","FOUR","FIVE","SIX_OR_MORE"] */
   roomsNumber?: string[];
-  /** "ALL" | "PRIVATE" | "AGENCY" */
+  /** "ALL" | "PRIVATE" | "AGENCY" — imovirtual */
   ownerType?: string;
+  [key: string]: unknown;
 }

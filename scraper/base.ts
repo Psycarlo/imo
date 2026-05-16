@@ -16,6 +16,12 @@ export abstract class BaseScraper {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     });
     this.page = await context.newPage();
+    // tsx/esbuild can emit references to a `__name` helper inside callbacks
+    // passed to page.evaluate. Provide a no-op shim in the browser context
+    // so those callbacks don't ReferenceError.
+    await this.page.addInitScript(() => {
+      (globalThis as unknown as { __name?: <T>(fn: T) => T }).__name ??= ((fn: unknown) => fn) as <T>(fn: T) => T;
+    });
   }
 
   abstract scrape(maxPages?: number, limit?: number): Promise<Listing[]>;

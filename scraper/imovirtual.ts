@@ -1,13 +1,13 @@
 import { BaseScraper } from "./base.js";
-import type { Listing, ImovirtualFilters } from "./types.js";
+import type { Listing, ScraperFilters } from "./types.js";
 
 export class ImovirtualScraper extends BaseScraper {
   readonly name = "imovirtual";
   readonly baseUrl = "https://www.imovirtual.com";
 
-  private filters: ImovirtualFilters;
+  private filters: ScraperFilters;
 
-  constructor(filters: ImovirtualFilters = {}) {
+  constructor(filters: ScraperFilters = {}) {
     super();
     this.filters = {
       transaction: "comprar",

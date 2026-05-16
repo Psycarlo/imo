@@ -20,6 +20,15 @@ type Listing = Doc<"listings">;
 type SortField = "firstSeen" | "price" | "contactCount" | "rooms" | "area";
 type SortDir = "asc" | "desc";
 
+const SOURCE_STYLES: Record<string, string> = {
+  imovirtual: "bg-purple-100 text-purple-700",
+  olx: "bg-orange-100 text-orange-700",
+  "casa.sapo": "bg-rose-100 text-rose-700",
+  supercasa: "bg-cyan-100 text-cyan-700",
+  "casa.iol": "bg-amber-100 text-amber-700",
+  casayes: "bg-emerald-100 text-emerald-700",
+};
+
 function parsePrice(price: string): number {
   const num = price.replace(/[^\d]/g, "");
   return num ? parseInt(num, 10) : 0;
@@ -39,7 +48,13 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterFavOnly, setFilterFavOnly] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "moradia" | "apartamento">("all");
+  const [filterSource, setFilterSource] = useState<string>("all");
   const [search, setSearch] = useState("");
+
+  const sources = useMemo(
+    () => Array.from(new Set(listings.map((l) => l.source).filter(Boolean))).sort(),
+    [listings]
+  );
 
   const sorted = useMemo(() => {
     let filtered = [...listings];
@@ -50,6 +65,10 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
 
     if (filterType !== "all") {
       filtered = filtered.filter((l) => l.type === filterType);
+    }
+
+    if (filterSource !== "all") {
+      filtered = filtered.filter((l) => l.source === filterSource);
     }
 
     if (search) {
@@ -84,7 +103,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
     });
 
     return filtered;
-  }, [listings, sortField, sortDir, filterFavOnly, filterType, search]);
+  }, [listings, sortField, sortDir, filterFavOnly, filterType, filterSource, search]);
 
   function toggleSort(field: SortField) {
     if (sortField === field) {
@@ -130,6 +149,16 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
             </button>
           ))}
         </div>
+        <select
+          value={filterSource}
+          onChange={(e) => setFilterSource(e.target.value)}
+          className="rounded-md border bg-background px-3 py-2 text-sm capitalize outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="all">All sources</option>
+          {sources.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
         <button
           onClick={() => setFilterFavOnly(!filterFavOnly)}
           className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm ${
@@ -154,6 +183,7 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
             <tr className="border-b bg-muted/50">
               <th className="w-10 px-3 py-3"></th>
               <th className="px-3 py-3 text-left font-medium">Type</th>
+              <th className="px-3 py-3 text-left font-medium">Source</th>
               <th className="px-3 py-3 text-left font-medium">Title</th>
               <th
                 className="cursor-pointer px-3 py-3 text-left font-medium"
@@ -234,6 +264,15 @@ export function ListingsTable({ listings }: { listings: Listing[] }) {
                     }`}
                   >
                     {listing.type || "—"}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3">
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      SOURCE_STYLES[listing.source] ?? "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {listing.source || "—"}
                   </span>
                 </td>
                 <td className="max-w-[250px] truncate px-3 py-3 font-medium">
